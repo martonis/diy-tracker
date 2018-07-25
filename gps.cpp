@@ -111,7 +111,11 @@ static void GPS_PPS_On(void)                          // called on rising edge o
   xSemaphoreGive(CONS_Mutex);
 #endif
   GPS_Status.PPS=1;
+#ifndef WITH_MINI_TRACKER
   LED_PCB_Flash(50);
+#else
+  LED_GPS_Flash(50);
+#endif
   // uint8_t Sec=GPS_Sec; Sec++; if(Sec>=60) Sec=0; GPS_Sec=Sec;
   // GPS_UnixTime++;
 // #ifdef WITH_MAVLINK
@@ -284,7 +288,12 @@ static void GPS_BurstComplete(void)                                        // wh
         Format_String(CONS_UART_Write, "s\n");
         xSemaphoreGive(CONS_Mutex);
 #endif
+
+#ifndef WITH_MINI_TRACKER
         LED_PCB_Flash(100); }
+#else
+        LED_GPS_Flash(100); }
+#endif
     }
     else                                                                  // complete but no valid lock
     { if(GPS_TimeSinceLock) { GPS_LockEnd(); GPS_TimeSinceLock=0; }
@@ -655,6 +664,10 @@ void vTaskGPS(void* pvParameters)
 
   // PPS_TickCount=0;
   Burst_TickCount=0;
+
+#ifdef WITH_MINI_TRACKER
+  LED_GPS_Off();
+#endif
 
   vTaskDelay(5);
 

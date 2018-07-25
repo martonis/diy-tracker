@@ -23,5 +23,8 @@ void UART1_Write(char Byte);
 void inline UART1_TxKick(void) { USART_ITConfig(USART1, USART_IT_TXE, ENABLE); }
 int  UART1_Free(void);
 int  UART1_Full(void);
+#ifdef WITH_BLUETOOTH
+void USART1_Disable(void);
+#endif
 
 #endif // __UART1_H__

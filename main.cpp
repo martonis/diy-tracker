@@ -85,6 +85,13 @@ int main(void)
   xTaskCreate(vTaskPROC,  "PROC",   160, 0, tskIDLE_PRIORITY  , 0);  // processing received packets and prepare packets for transmission
   xTaskCreate(vTaskSENS,  "SENS",   128, 0, tskIDLE_PRIORITY+1, 0);  // SENS: BMP180 pressure, correlate with GPS
 
+#ifdef WITH_BLUETOOTH
+  if (Parameters.BT_ON == 1)
+    BT_PWR_On();
+  else
+    BT_PWR_Off();
+#endif
+
   vTaskStartScheduler();
 
   while(1)

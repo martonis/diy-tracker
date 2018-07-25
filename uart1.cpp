@@ -64,3 +64,7 @@ void UART1_Write(char Byte)
 
 int UART1_Free(void) { return UART1_TxFIFO.Free(); }
 int UART1_Full(void) { return UART1_TxFIFO.Full(); }
+
+#ifdef WITH_BLUETOOTH
+void USART1_Disable(void) { USART_Cmd(USART1, DISABLE); } // Disable USART1
+#endif

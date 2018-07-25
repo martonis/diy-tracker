@@ -201,9 +201,14 @@ void RCC_Configuration(void)
 
 // -------------------------------------------------------------------------------------------------------
 
-#ifdef WITH_BLUE_PILL
+#if defined(WITH_BLUE_PILL) ||  defined(WITH_MINI_TRACKER)
 void LED_PCB_On   (void) { GPIO_ResetBits(GPIOC, GPIO_Pin_13); }  // LED is on PC.13 and LOW-active
 void LED_PCB_Off  (void) { GPIO_SetBits  (GPIOC, GPIO_Pin_13); }
+#endif
+
+#ifdef WITH_MINI_TRACKER
+void LED_GPS_On   (void) { GPIO_ResetBits(GPIOB, GPIO_Pin_0); }  // LED is on PB.0 and LOW-active
+void LED_GPS_Off  (void) { GPIO_SetBits  (GPIOB, GPIO_Pin_0); }
 #endif
 
 #ifdef WITH_MAPLE_MINI
@@ -226,14 +231,26 @@ void LED_TX_On    (void) { GPIO_ResetBits(GPIOD, GPIO_Pin_4); }
 void LED_TX_Off   (void) { GPIO_SetBits  (GPIOD, GPIO_Pin_4); }
 #endif
 
+#ifdef WITH_BLUETOOTH
+void BT_PWR_On  (void) { GPIO_ResetBits(GPIOA, GPIO_Pin_15); }    // BT is on PA.15 and LOW-active
+void BT_PWR_Off (void) { GPIO_SetBits  (GPIOA, GPIO_Pin_15); }
+#endif
+
 static void LED_GPIO_Configuration (void)             // LED on the PCB
 { GPIO_InitTypeDef  GPIO_InitStructure;
 
-#ifdef WITH_BLUE_PILL
+#if defined(WITH_BLUE_PILL) ||  defined(WITH_MINI_TRACKER)
   GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_13;        // Configure PC.13 as output (blue LED on the PCB)
   GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init(GPIOC, &GPIO_InitStructure);
+#endif
+
+#ifdef WITH_MINI_TRACKER
+  GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_0;        // Configure PB.0 as output
+  GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
 #endif
 
 #ifdef WITH_MAPLE_MINI
@@ -256,7 +273,7 @@ static void LED_GPIO_Configuration (void)             // LED on the PCB
 
 // function to control and read status of the RF chip
 
-#if defined(WITH_BLUE_PILL) || defined(WITH_MAPLE_MINI) // classical DIY-Tracker
+#if defined(WITH_BLUE_PILL) || defined(WITH_MAPLE_MINI) || defined(WITH_MINI_TRACKER) // classical DIY-Tracker
 
 // PB5: RF chip RESET: active HIGH for RFM69, active low for RFM95
 #ifdef SPEEDUP_STM_LIB
@@ -333,7 +350,7 @@ void RFM_RESET(uint8_t On)
 static void RFM_GPIO_Configuration(void)
 { GPIO_InitTypeDef  GPIO_InitStructure;
 
-#if defined(WITH_BLUE_PILL) || defined(WITH_MAPLE_MINI)
+#if defined(WITH_BLUE_PILL) || defined(WITH_MAPLE_MINI) || defined(WITH_MINI_TRACKER)
   GPIO_InitStructure.GPIO_Pin   = /* GPIO_Pin_3 | */ GPIO_Pin_4;      // PB4 = DIO0 and PB3 = DIO4 of RFM69
   GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN_FLOATING;
   // GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IPU;
@@ -363,7 +380,7 @@ static void RFM_GPIO_Configuration(void)
   NVIC_EnableIRQ(EXTI4_IRQn);
 #endif // WITH_RF_IRQ
 
-#endif // WITH_BLUE_PILL || WITH_MAPLE_MINI
+#endif // WITH_BLUE_PILL || WITH_MAPLE_MINI || defined(WITH_MINI_TRACKER)
 
 #ifdef WITH_OGN_CUBE_1
   GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_2;                        // PB2 = DIO0 RFM69/95
@@ -410,7 +427,7 @@ void (*RF_IRQ_Callback)(void) = 0;
 #ifdef __cplusplus
   extern "C"
 #endif
-#if defined(WITH_BLUE_PILL) || defined(WITH_MAPLE_MINI)          
+#if defined(WITH_BLUE_PILL) || defined(WITH_MAPLE_MINI) || defined(WITH_MINI_TRACKER)
 void EXTI4_IRQHandler(void)                                      // RF chip DIO0 interrupt
 {
   if(EXTI_GetITStatus(EXTI_Line4) != RESET)
@@ -517,6 +534,16 @@ void GPS_ENABLE (void) { GPIO_SetBits  (GPIOA, GPIO_Pin_0); }
 
 #ifdef WITH_GPS_PPS
 bool GPS_PPS_isOn(void) { return GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_1) != Bit_RESET; }
+#endif
+
+#ifdef WITH_BLUETOOTH
+static void BT_GPIO_Configuration (void)
+{ GPIO_InitTypeDef  GPIO_InitStructure;
+  GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_15;        // Configure PA.15 as output: BT Enable(HIGH) / Shutdown(LOW)
+  GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+  GPIO_Init(GPIOA, &GPIO_InitStructure);
+}
 #endif
 
 static void GPS_GPIO_Configuration (void)
@@ -626,6 +653,11 @@ void IO_Configuration(void)
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+#ifdef WITH_BLUETOOTH
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO,  ENABLE);
+  GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable, ENABLE);
+  BT_GPIO_Configuration();                               // BT Enable
+#endif
   LED_GPIO_Configuration();                              // LED
   GPS_GPIO_Configuration();                              // GPS PPS, Enable, PPS IRQ
 
@@ -716,6 +748,11 @@ static void Play_TimerCheck(void)                // every ms serve the note play
 volatile uint8_t LED_PCB_Counter = 0;
 void LED_PCB_Flash(uint8_t Time) { if(Time>LED_PCB_Counter) LED_PCB_Counter=Time; } // [ms]
 
+#ifdef WITH_MINI_TRACKER
+volatile uint8_t LED_GPS_Counter = 0;
+void LED_GPS_Flash(uint8_t Time) { if(Time>LED_GPS_Counter) LED_GPS_Counter=Time; } // [ms]
+#endif
+
 #ifdef WITH_LED_TX
 volatile uint8_t LED_TX_Counter = 0;
 void LED_TX_Flash(uint8_t Time) { if(Time>LED_TX_Counter) LED_TX_Counter=Time; } // [ms]
@@ -739,6 +776,15 @@ void LED_TimerCheck(uint8_t Ticks)
     if(Counter) LED_PCB_On();
            else LED_PCB_Off();
     LED_PCB_Counter=Counter; }
+#ifdef WITH_MINI_TRACKER
+  Counter=LED_GPS_Counter;
+  if(Counter)
+  { if(Ticks<Counter) Counter-=Ticks;
+                 else Counter =0;
+    if(Counter) LED_GPS_On();
+           else LED_GPS_Off();
+    LED_GPS_Counter=Counter; }
+#endif
 #ifdef WITH_LED_TX
   Counter=LED_TX_Counter;
   if(Counter)

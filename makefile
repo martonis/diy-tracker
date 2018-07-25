@@ -21,6 +21,7 @@ TCHAIN = arm-none-eabi
 # knob          ... user knob to set volume and options on PB0
 # batt_sense    ... measure battery voltage with R-R divider to pin PB1
 # config        ... setting the aircraft-type, address-type, address, etc. through the serial port
+# bluetooth         allows to save bt pwr state to flash and to switch BT pwr over PA15
 
 # rfm69
 # rfm69w        ... for the lower tx power RF chip
@@ -38,13 +39,15 @@ TCHAIN = arm-none-eabi
 # blue_pill     ... use Blue Pill STM32F103c8t6 board
 # maple_mini    ... use Maple Mini STM32F103cbt6 board
 # ogn_cube_1    ... Tracker hardware by Miroslav Cervenka
+# mini_tracker      Tracker HW with BT PWR controll over PA15 (selects bluetooth)
 # swap_uarts    ... use UART1 for GPS and UART2 for console
 
 # WITH_OPTS = blue_pill rfm69 beeper vario i2c1 bmp180 knob  relay config # for regular tracker with a knob and BMP180 but no SD card
 # WITH_OPTS = blue_pill rfm69 beeper vario i2c1 bmp180 sdlog relay config # for the test system (no knob but the SD card)
 # WITH_OPTS = blue_pill rfm69 beeper vario i2c1 bmp180 relay config gps_pps gps_enable gps_ubx_pass gps_nmea_pass
 # WITH_OPTS = maple_mini rfm69 i2c1 bmp180 relay config gps_pps gps_enable
-WITH_OPTS = blue_pill rfm69 beeper i2c1 bmp180 relay pflaa config gps_config gps_ubx gps_pps gps_enable flashlog # gps_ubx_pass gps_nmea_pass
+#WITH_OPTS = blue_pill rfm69 beeper i2c1 bmp180 relay pflaa config gps_config gps_ubx gps_pps gps_enable flashlog # gps_ubx_pass gps_nmea_pass
+WITH_OPTS = mini_tracker rfm69 i2c1 bmp280 relay lookout pflaa config gps_config gps_pps gps_enable flashlog bluetooth sdlog gps_nmea_pass beeper sdcard sdlog
 # WITH_OPTS = blue_pill rfm69 beeper vario i2c1 bmp180 relay config gps_pps gps_enable
 # WITH_OPTS = blue_pill rfm69 beeper relay config
 # WITH_OPTS = blue_pill rfm95 beeper vario i2c1 bmp280 relay config
@@ -150,6 +153,10 @@ ifneq ($(findstring vario,$(WITH_OPTS)),)
   WITH_OPTS += beeper
 endif
 
+ifneq ($(findstring bluetooth,$(WITH_OPTS)),)
+  WITH_DEFS += -DWITH_BLUETOOTH
+endif
+
 ifneq ($(findstring beeper,$(WITH_OPTS)),)
   WITH_DEFS += -DWITH_BEEPER
   C_SRC += beep.cpp
@@ -247,6 +254,11 @@ endif
 ifneq ($(findstring ogn_cube_1,$(WITH_OPTS)),)
   MCU = STM32F103CB
   WITH_DEFS += -DWITH_OGN_CUBE_1
+endif
+
+ifneq ($(findstring mini_tracker,$(WITH_OPTS)),)
+  MCU = STM32F103CB
+  WITH_DEFS += -DWITH_MINI_TRACKER
 endif
 
 #-------------------------------------------------------------------------------

@@ -20,6 +20,8 @@
 #include "nmea.h"
 #include "format.h"
 
+#include "uart1.h"
+
 // Parameters stored in Flash
 class FlashParameters
 { public:
@@ -248,6 +250,9 @@ class FlashParameters
     Len+=Format_String(Line+Len, " CON:");
     Len+=Format_UnsDec(Line+Len, CONbaud);
     Len+=Format_String(Line+Len, "bps\n");
+#ifdef WITH_BLUETOOTH
+    Len+=Format_UnsDec(Line+Len, BT_ON);
+#endif
     Line[Len]=0;
     return Len; }
 
@@ -300,6 +305,16 @@ class FlashParameters
     if(strcmp(Name, "TxHW")==0)
     { int32_t HW=1; if(Read_Int(HW, Value)<=0) return 0;
       if(HW) setTxTypeHW(); else clrTxTypeHW(); }
+#ifdef WITH_BLUETOOTH
+    if(strcmp(Name, "Bluetooth")==0)
+    { int32_t bton=0; if(Read_Int(bton, Value)<=0) return 0;
+      if (bton==2 ){
+          //WAR: disable usart1 in order to be able to configure BT over 2nd USB
+          USART1_Disable();
+          bton=1;
+      }
+      BT_ON=bton; return 1; }
+#endif
     if(strcmp(Name, "TxPower")==0)
     { int32_t TxPower=0; if(Read_Int(TxPower, Value)<=0) return 0;
       setTxPower(TxPower); return 1; }
@@ -410,6 +425,9 @@ class FlashParameters
     Write_SignDec(Line, "TimeCorr"  , (int32_t)TimeCorr         ); strcat(Line, " #  [    s]\n"); if(fputs(Line, File)==EOF) return EOF;
     Write_Float1 (Line, "GeoidSepar",          GeoidSepar       ); strcat(Line, " #  [    m]\n"); if(fputs(Line, File)==EOF) return EOF;
     Write_UnsDec (Line, "PPSdelay"  ,(uint32_t)PPSdelay         ); strcat(Line, " #  [   ms]\n"); if(fputs(Line, File)==EOF) return EOF;
+#ifdef WITH_BLUETOOTH
+    Write_UnsDec (Line, "Bluetooth" ,          BT_ON            ); strcat(Line, " #  [  1|0]\n"); if(fputs(Line, File)==EOF) return EOF;
+#endif
     for(uint8_t Idx=0; Idx<InfoParmNum; Idx++)
     { Write_String (Line, InfoParmName(Idx), InfoParmValue(Idx)); strcat(Line, " #  [char]\n"); if(fputs(Line, File)==EOF) return EOF; }
 #ifdef WITH_WIFI
@@ -442,6 +460,9 @@ class FlashParameters
     Write_SignDec(Line, "TimeCorr"  , (int32_t)TimeCorr         ); strcat(Line, " #  [    s]\n"); Format_String(Output, Line);
     Write_Float1 (Line, "GeoidSepar",          GeoidSepar       ); strcat(Line, " #  [    m]\n"); Format_String(Output, Line);
     Write_UnsDec (Line, "PPSdelay"  ,(uint32_t)PPSdelay         ); strcat(Line, " #  [   ms]\n"); Format_String(Output, Line);
+#ifdef WITH_BLUETOOTH
+    Write_UnsDec (Line, "Bluetooth" ,          BT_ON            ); strcat(Line, " #  [  1|0]\n"); Format_String(Output, Line);
+#endif
     for(uint8_t Idx=0; Idx<InfoParmNum; Idx++)
     { Write_String (Line, InfoParmName(Idx), InfoParmValue(Idx)); strcat(Line, " #  [char]\n"); Format_String(Output, Line); }
 #ifdef WITH_WIFI

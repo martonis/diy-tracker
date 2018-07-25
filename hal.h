@@ -36,6 +36,11 @@ void IWDG_Configuration(void);           // configure watchdog
 void LED_PCB_On   (void);                // LED on the PCB for vizual indications
 void LED_PCB_Off  (void);
 
+#ifdef WITH_MINI_TRACKER
+void LED_GPS_On   (void);                // GPS LED
+void LED_GPS_Off  (void);
+#endif
+
 void LED_RX_On    (void);
 void LED_RX_Off   (void);
 
@@ -81,6 +86,11 @@ void GPS_ENABLE (void);
 bool GPS_PPS_isOn(void);
 #endif
 
+#ifdef WITH_BLUETOOTH
+void BT_PWR_On  (void);
+void BT_PWR_Off  (void);
+#endif
+
 // =======================================================================================================
 
 void UART_Configuration(int CONS_BaudRate, int GPS_BaudRate);
@@ -97,6 +107,9 @@ void  GPS_UART_Write      (char     Byte); // blocking
 void  GPS_UART_SetBaudrate(int BaudRate);
 
 void LED_PCB_Flash(uint8_t Time);     // [ms] turn on the PCB LED for a given time
+#ifdef WITH_MINI_TRACKER
+void LED_GPS_Flash(uint8_t Time);     // [ms] turn on the GPS LED for a given time
+#endif
 #ifdef WITH_LED_RX
 void LED_RX_Flash(uint8_t Time);      // [ms] turn on the RX LED for a given time
 #endif
